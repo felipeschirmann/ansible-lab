@@ -1,0 +1,87 @@
+---
+- name: Configure of application server
+  hosts: app01
+
+  user: vagrant
+  become: yes
+
+  vars:
+    - dbhost: "db01"
+    - dbname: "notes"
+    - dbusername: "notesapp"
+    - dbpassword: "devopsdatabase"
+  tasks:
+    - name: Add user of app
+      user:
+        name: app
+        comment: User of application
+        uid: 500
+    - name: Maven donwload
+      get_url:
+        url: https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.1.0/apache-maven-3.1.0-bin.tar.gz
+        dest: /opt/apache-maven-3.1.0-bin.tar.gz
+    - name: Unzip of maven packet
+      ansible.builtin.unarchive:
+        src: /opt/apache-maven-3.1.0-bin.tar.gz
+        dest: /opt/
+        remote_src: yes
+    - name: Creat app dir
+      file:
+        path: /opt/notes
+        state: directory
+        owner: app
+        group: app
+    - name: Install git client
+      yum:
+        name: git
+        state: latest
+    - name: Clone of repository Notes - app
+      git:
+        repo: 'https://github.com/callicoder/spring-boot-mysql-rest-api-tutorial.git'
+        dest: /opt/notes
+        clone: yes
+        force: yes
+    - name: Configure file pom.xml with maven central repositories
+      template:
+        src: pom.xml
+        dest: /opt/notes/pom.xml
+    - name: Configure file application.properties for database connection
+      template:
+        src: application.properties
+        dest: /opt/notes/src/main/resources/application.properties
+    - name: Gerar pacote da aplicação
+      command: /opt/apache-maven-3.1.0/bin/mvn -f /opt/notes/pom.xml package
+      become_user: app
+    - name: Register packet version of app
+      shell:
+        cmd: /opt/apache-maven-3.1.0/bin/mvn help:evaluate -Dexpression=project.version -q -DforceStdout
+        chdir: /opt/notes/
+      register: app_version
+    - name: Configure service Systemd
+      template:
+        src: etc/systemd/system/notes.service
+        dest: /etc/systemd/system/notes.service
+        owner: root
+        group: root
+        mode: '0600'
+      notify: reload daemon
+    - name: Start service notes
+      service:
+        name: notes
+        state: restarted
+  roles:
+      - configuration-default-so
+      - role: geerlingguy.java
+        when: "ansible_os_family == 'RedHat'"
+        java_packages:
+          - java-1.8.0-openjdk
+          - java-1.8.0-openjdk-devel
+  handlers:
+    - name: reload app
+      systemd:
+        state: restarted
+        daemon_reload: yes 
+        name: 'notes'
+    - name: reload daemon
+      systemd:
+        daemon_reexec: yes

@@ -1,0 +1,15 @@
+---
+- name: Configure server database
+  hosts: db01
+
+  user: vagrant
+  become: yes
+  vars_files:
+    - vars/main.yml
+  vars:
+    - dbname: "db01"
+    - dbusername: "root"
+    - dbpassword: "devopsdatabase"
+  roles:
+    - configuration-default-so
+    - role: geerlingguy.mysql
