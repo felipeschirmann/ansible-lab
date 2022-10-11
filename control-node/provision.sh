@@ -7,3 +7,16 @@ cat <<EOT >> /etc/hosts
 192.168.56.3 app01
 192.168.56.4 db01
 EOT
+
+cat <<EOT >> /etc/ansible/ansible.cfg
+inventory      = /etc/ansible/hosts
+EOT
+
+cat <<EOT >> /etc/ansible/hosts
+
+[dbservers]
+db01
+
+[appservers]
+app01
+EOT

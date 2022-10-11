@@ -49,7 +49,7 @@
       template:
         src: application.properties
         dest: /opt/notes/src/main/resources/application.properties
-    - name: Gerar pacote da aplicação
+    - name: Genereting application packet
       command: /opt/apache-maven-3.1.0/bin/mvn -f /opt/notes/pom.xml package
       become_user: app
     - name: Register packet version of app
